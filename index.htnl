@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Glass Text Cryptor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <style>
+        :root {
+            /* Dark Mode Variables (Default) */
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-sub: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --accent-primary: #ff007f;
+            --accent-secondary: #00f2fe;
+            --tab-active: rgba(255, 255, 255, 0.1);
+            --shadow: rgba(0, 0, 0, 0.37);
+        }
+
+        [data-theme="light"] {
+            /* Light Mode Variables */
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #fae8ff, #e0f2fe);
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-main: #1e1b4b;
+            --text-sub: #4338ca;
+            --text-muted: #6b7280;
+            --accent-primary: #d946ef;
+            --accent-secondary: #06b6d4;
+            --tab-active: rgba(255, 255, 255, 0.6);
+            --shadow: rgba(31, 38, 135, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Container */
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 30px 25px;
+            box-shadow: 0 8px 32px 0 var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+        }
+
+        /* Header & Theme Toggle */
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .theme-toggle-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 5px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        .tab-btn.active {
+            background: var(--tab-active);
+            color: var(--text-main);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Method Selector (Base64 / AES) */
+        .method-selector {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .method-selector label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        .method-selector input[type="radio"] {
+            accent-color: var(--accent-primary);
+        }
+
+        /* Secret Key Row (Hidden by default, shown for AES) */
+        .key-group {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .key-group.show {
+            display: flex;
+        }
+
+        .secret-input {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-main);
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        /* Input / Output Groups */
+        .input-group {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 0 5px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 110px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 15px;
+            padding-right: 45px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            resize: none;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-secondary);
+        }
+
+        /* Tool Utilities Floating Buttons */
+        .action-icon {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .action-icon:hover {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--accent-secondary);
+        }
+
+        .extra-actions {
+            bottom: 12px;
+            right: 50px; /* shift to left to avoid overlapping */
+        }
+
+        /* Main Process Button */
+        .process-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(45deg, #ff007f, #7928ca);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.2);
+        }
+
+        .process-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Toast Message */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 242, 254, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--accent-secondary);
+            color: var(--text-main);
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .footer span {
+            color: var(--accent-secondary);
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-area">
+            <h1 id="tool-title">Secure Cryptor</h1>
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Mode">
+                <i class="fa-solid fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-encode" onclick="switchTab('encode')">Encode / Encrypt</button>
+            <button class="tab-btn" id="tab-decode" onclick="switchTab('decode')">Decode / Decrypt</button>
+        </div>
+
+        <div class="method-selector">
+            <label><input type="radio" name="algo" value="base64" checked onchange="toggleAlgo()"> Base64 (Standard)</label>
+            <label><input type="radio" name="algo" value="aes" onchange="toggleAlgo()"> AES (Secure Password)</label>
+        </div>
+
+        <div class="key-group" id="key-container">
+            <input type="password" id="secret-key" class="secret-input" placeholder="Enter Secret Password Key...">
+        </div>
+
+        <div class="input-group">
+            <div class="label-row">
+                <span id="input-label">Normal Text</span>
+                <span id="input-counter">Chars: 0</span>
+            </div>
+            <textarea id="input-text" placeholder="Type or paste your text here..." oninput="updateCounters()"></textarea>
+            <button class="action-icon" onclick="pasteText()" title="Paste text">
+                <i class="fa-regular fa-clipboard"></i>
+            </button>
+        </div>
+
+        <button class="process-btn" id="action-btn" onclick="processText()">Process Text</button>
+
+        <div class="input-group">
+            <div class="label-row">
+                <span id="output-label">Result Output</span>
+                <span id="output-counter">Chars: 0</span>
+            </div>
+            <textarea id="output-text" placeholder="Output will appear here..." readonly oninput="updateCounters()"></textarea>
+            
+            <button class="action-icon extra-actions" onclick="downloadText()" title="Download as .txt">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <button class="action-icon" onclick="copyText()" title="Copy text">
+                <i class="fa-regular fa-copy"></i>
+            </button>
+        </div>
+
+        <div class="footer">
+            Created by <span>Tishan Hasidu</span>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        let currentMode = 'encode';
+
+        // 1. SYSTEM AUTO DETECTION FOR THEME + MANUAL TOGGLE
+        const themeIcon = document.getElementById('theme-icon');
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'light') {
+                themeIcon.className = "fa-solid fa-sun";
+            } else {
+                themeIcon.className = "fa-solid fa-moon";
+            }
+        }
+
+        // Auto switch theme based on system preference
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function autoThemeCheck(e) {
+            setTheme(e.matches ? 'dark' : 'light');
+        }
+        systemPrefersDark.addEventListener('change', autoThemeCheck);
+        // Initial setup check
+        setTheme(systemPrefersDark.matches ? 'dark' : 'light');
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        }
+
+        // 2. TOGGLE METHOD ALGORITHM (Base64 vs AES)
+        function toggleAlgo() {
+            const algo = document.querySelector('input[name="algo"]:checked').value;
+            const keyContainer = document.getElementById('key-container');
+            if (algo === 'aes') {
+                keyContainer.classList.add('show');
+            } else {
+                keyContainer.classList.remove('show');
+            }
+            updateButtonUI();
+        }
+
+        // 3. TAB LOGIC (Without Page Refresh)
+        function switchTab(mode) {
+            currentMode = mode;
+            
+            document.getElementById('tab-encode').classList.remove('active');
+            document.getElementById('tab-decode').classList.remove('active');
+            
+            const toolTitle = document.getElementById('tool-title');
+            const inputLabel = document.getElementById('input-label');
+            const outputLabel = document.getElementById('output-label');
+            
+            // Wipe inputs
+            document.getElementById('input-text').value = '';
+            document.getElementById('output-text').value = '';
+            updateCounters();
+
+            if(mode === 'encode') {
+                document.getElementById('tab-encode').classList.add('active');
+                toolTitle.innerText = "Secure Cryptor";
+                inputLabel.innerText = "Normal Text";
+                outputLabel.innerText = "Secured Output";
+            } else {
+                document.getElementById('tab-decode').classList.add('active');
+                toolTitle.innerText = "Secure Decryptor";
+                inputLabel.innerText = "Crypto/Encoded Text";
+                outputLabel.innerText = "Decrypted Output";
+            }
+            updateButtonUI();
+        }
+
+        function updateButtonUI() {
+            const actionBtn = document.getElementById('action-btn');
+            const algo = document.querySelector('input[name="algo"]:checked').value;
+
+            if (currentMode === 'encode') {
+                actionBtn.innerText = algo === 'aes' ? "AES Encrypt Text" : "Base64 Encode Text";
+                actionBtn.style.background = "linear-gradient(45deg, var(--accent-primary), #7928ca)";
+            } else {
+                actionBtn.innerText = algo === 'aes' ? "AES Decrypt Text" : "Base64 Decode Text";
+                actionBtn.style.background = "linear-gradient(45deg, var(--accent-secondary), #4facfe)";
+            }
+        }
+
+        // 4. MAIN ENCRYPT / DECRYPT LOGIC
+        function processText() {
+            const input = document.getElementById('input-text').value.trim();
+            const outputField = document.getElementById('output-text');
+            const algo = document.querySelector('input[name="algo"]:checked').value;
+            const secretKey = document.getElementById('secret-key').value;
+
+            if (!input) {
+                showToast("Please enter some text!");
+                return;
+            }
+
+            try {
+                if (algo === 'base64') {
+                    // Standard Safe Base64 Encoding
+                    if (currentMode === 'encode') {
+                        const encoded = btoa(unescape(encodeURIComponent(input)));
+                        outputField.value = encoded;
+                    } else {
+                        const decoded = decodeURIComponent(escape(atob(input)));
+                        outputField.value = decoded;
+                    }
+                } else if (algo === 'aes') {
+                    // AES Secure Encryption via Crypto-JS
+                    if (!secretKey) {
+                        showToast("Enter a Secret Password Key!");
+                        return;
+                    }
+                    if (currentMode === 'encode') {
+                        const encrypted = CryptoJS.AES.encrypt(input, secretKey).toString();
+                        outputField.value = encrypted;
+                    } else {
+                        const decryptedBytes = CryptoJS.AES.decrypt(input, secretKey);
+                        const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                        if (!decryptedText) throw new Error("Invalid Key");
+                        outputField.value = decryptedText;
+                    }
+                }
+                updateCounters();
+            } catch (e) {
+                showToast("Error! Check input text or password key.");
+                outputField.value = "Error: Authentication failed or bad data format.";
+                updateCounters();
+            }
+        }
+
+        // 5. CHARACTER COUNT LOGIC
+        function updateCounters() {
+            const inputLen = document.getElementById('input-text').value.length;
+            const outputLen = document.getElementById('output-text').value.length;
+            
+            document.getElementById('input-counter').innerText = `Chars: ${inputLen}`;
+            document.getElementById('output-counter').innerText = `Chars: ${outputLen}`;
+        }
+
+        // 6. DOWNLOAD AS .TXT FILE
+        function downloadText() {
+            const outData = document.getElementById('output-text').value;
+            if (!outData || outData.startsWith("Error:")) {
+                showToast("No valid output data to download!");
+                return;
+            }
+            
+            const blob = new Blob([outData], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cryptor-output-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("File downloaded successfully!");
+        }
+
+        // Clipboards handles (Paste & Copy)
+        async function pasteText() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('input-text').value = text;
+                updateCounters();
+                showToast("Text pasted!");
+            } catch (err) {
+                showToast("Clipboard read permission denied!");
+            }
+        }
+
+        function copyText() {
+            const outputText = document.getElementById('output-text');
+            if (!outputText.value || outputText.value.startsWith("Error:")) {
+                showToast("Nothing to copy!");
+                return;
+            }
+            outputText.select();
+            navigator.clipboard.writeText(outputText.value);
+            showToast("Copied to clipboard!");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+</html>
